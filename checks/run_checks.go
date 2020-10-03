@@ -19,8 +19,10 @@ package checks
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
+	"runtime/debug"
 
 	"github.com/digitalocean/clusterlint/kube"
 	"golang.org/x/sync/errgroup"
@@ -28,7 +30,7 @@ import (
 
 // Run applies the filters and runs the resultant check list in parallel
 func Run(ctx context.Context, client *kube.Client, checkFilter CheckFilter, diagnosticFilter DiagnosticFilter, objectFilter kube.ObjectFilter) (*CheckResult, error) {
-	objects, err := client.FetchObjects(ctx,objectFilter)
+	objects, err := client.FetchObjects(ctx, objectFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +48,12 @@ func Run(ctx context.Context, client *kube.Client, checkFilter CheckFilter, diag
 	checkDuration := make(map[string]time.Duration)
 	for _, check := range all {
 		check := check
-		g.Go(func() error {
+		g.Go(func() (err error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("Recovered from panic in check '%s': %v", check.Name(), string(debug.Stack()))
+				}
+			}()
 			start := time.Now()
 			d, err := check.Run(objects)
 			elapsed := time.Since(start)

@@ -371,6 +371,74 @@ webhooks:
         operator: "DoesNotExist"
 ```
 
+## Admission Controller Webhook Timeout
+
+- Name: `admission-controller-webhook-timeout`
+- Groups: `doks`
+
+Admission control webhook timeouts can block upgrades, when the API call times out, due to an incorrectly configured TimeoutSeconds value. Since webhooks inherently add to API latency, we must stay within the recommended range in order for API requests to be successful. Specifically, this happens when an admission control webhook does not respond within 30 seconds.
+
+### Example
+
+```yaml
+# Error: Configure a webhook with a TimeoutSeconds value greater than 30 seconds.
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: sample-webhook.example.com
+webhooks:
+- name: sample-webhook.example.com
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - pods
+    scope: "Namespaced"
+  clientConfig:
+    service:
+      namespace: webhook
+      name: webhook-server
+      path: /pods
+  admissionReviewVersions:
+  - v1beta1
+  timeoutSeconds: 60
+```
+
+### How to Fix
+
+Set the TimeoutSeconds value to anything within the 1 to 30 second range.
+
+```yaml
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: sample-webhook.example.com
+webhooks:
+- name: sample-webhook.example.com
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - pods
+    scope: "Namespaced"
+  clientConfig:
+    service:
+      namespace: webhook
+      name: webhook-server
+      path: /pods
+  admissionReviewVersions:
+  - v1beta1
+  timeoutSeconds: 10
+```
+
 ## Pod State
 
 - Name: `pod-state`
@@ -587,6 +655,8 @@ spec:
 - Groups: `doks`
 
 When a DOKS cluster is upgraded, all worker nodes are replaced, and replacement nodes do not retain any custom labels or taints that were previously set by the user on the nodes. This check reports any labels or taints that will be lost on upgrade.
+
+DOKS provides persistent node pool labels. Adding a custom label to a node pool will ensure that the label is propagated to the worker nodes in the node pool after replacement or upgrade.
 
 ### How to Fix
 

@@ -26,35 +26,37 @@ import (
 )
 
 func init() {
-	checks.Register(&webhookReplaementCheck{})
+	checks.Register(&webhookReplacementCheck{})
 }
 
-type webhookReplaementCheck struct{}
+type webhookReplacementCheck struct{}
 
 // Name returns a unique name for this check.
-func (w *webhookReplaementCheck) Name() string {
+func (w *webhookReplacementCheck) Name() string {
 	return "admission-controller-webhook-replacement"
 }
 
 // Groups returns a list of group names this check should be part of.
-func (w *webhookReplaementCheck) Groups() []string {
+func (w *webhookReplacementCheck) Groups() []string {
 	return []string{"doks"}
 }
 
 // Description returns a detailed human-readable description of what this check
 // does.
-func (w *webhookReplaementCheck) Description() string {
+func (w *webhookReplacementCheck) Description() string {
 	return "Check for admission control webhooks that could cause problems during upgrades or node replacement"
 }
 
 // Run runs this check on a set of Kubernetes objects.
-func (w *webhookReplaementCheck) Run(objects *kube.Objects) ([]checks.Diagnostic, error) {
+func (w *webhookReplacementCheck) Run(objects *kube.Objects) ([]checks.Diagnostic, error) {
 	const apiserverServiceName = "kubernetes"
 
 	var diagnostics []checks.Diagnostic
 
 	for _, config := range objects.ValidatingWebhookConfigurations.Items {
+		config := config
 		for _, wh := range config.Webhooks {
+			wh := wh
 			if *wh.FailurePolicy == ar.Ignore {
 				// Webhooks with failurePolicy: Ignore are fine.
 				continue
@@ -74,6 +76,7 @@ func (w *webhookReplaementCheck) Run(objects *kube.Objects) ([]checks.Diagnostic
 			}
 			var svcNamespace *v1.Namespace
 			for _, ns := range objects.Namespaces.Items {
+				ns := ns
 				if ns.Name == wh.ClientConfig.Service.Namespace {
 					svcNamespace = &ns
 				}
@@ -103,7 +106,9 @@ func (w *webhookReplaementCheck) Run(objects *kube.Objects) ([]checks.Diagnostic
 	}
 
 	for _, config := range objects.MutatingWebhookConfigurations.Items {
+		config := config
 		for _, wh := range config.Webhooks {
+			wh := wh
 			if *wh.FailurePolicy == ar.Ignore {
 				// Webhooks with failurePolicy: Ignore are fine.
 				continue
@@ -123,6 +128,7 @@ func (w *webhookReplaementCheck) Run(objects *kube.Objects) ([]checks.Diagnostic
 			}
 			var svcNamespace *v1.Namespace
 			for _, ns := range objects.Namespaces.Items {
+				ns := ns
 				if ns.Name == wh.ClientConfig.Service.Namespace {
 					svcNamespace = &ns
 				}
